@@ -1,16 +1,13 @@
-import { Bell, Check, X, CheckCircle2, Package, Truck, Bike, MapPin } from "lucide-react";
+import { useState } from "react";
+import { Bell, Check, X } from "lucide-react";
 import ScreenHeader from "@/components/ScreenHeader";
 import { useStore, type OrderStatus } from "@/store/useStore";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-
-const trackingSteps: { key: OrderStatus; label: string; icon: typeof Package }[] = [
-  { key: "accepted", label: "Accepted", icon: CheckCircle2 },
-  { key: "ready", label: "Ready", icon: Package },
-  { key: "picked_up", label: "Picked up", icon: Bike },
-  { key: "on_the_way", label: "On the way", icon: Truck },
-  { key: "delivered", label: "Delivered", icon: MapPin },
-];
+import OrderTimeline from "@/components/OrderTimeline";
+import CustomerContactButtons from "@/components/CustomerContactButtons";
+import AdvanceStatusDialog from "@/components/AdvanceStatusDialog";
+import DeliveredOrdersSection from "@/components/DeliveredOrdersSection";
+import { relativeTime } from "@/lib/time";
 
 const nextStatus: Partial<Record<OrderStatus, OrderStatus>> = {
   accepted: "ready",
@@ -37,7 +34,11 @@ const weekly = [
 ];
 
 export default function OrdersScreen() {
-  const { orders, setOrderStatus } = useStore();
+  const { orders, setOrderStatus, now } = useStore();
+  const [pending, setPending] = useState<{ id: string; next: OrderStatus; label: string } | null>(
+    null,
+  );
+
   const newOrders = orders.filter((o) => o.status === "new");
   const activeOrders = orders.filter((o) =>
     ["accepted", "ready", "picked_up", "on_the_way"].includes(o.status),
@@ -45,7 +46,9 @@ export default function OrdersScreen() {
   const todaysCount = orders.filter((o) => o.status !== "rejected").length;
   const completedToday = orders.filter((o) => o.status === "delivered").length;
   const weekTotal = weekly.reduce((a, b) => a + b.value, 0);
-  const pending = orders.filter((o) => ["new", "accepted", "ready", "on_the_way", "picked_up"].includes(o.status)).length;
+  const pendingCount = orders.filter((o) =>
+    ["new", "accepted", "ready", "on_the_way", "picked_up"].includes(o.status),
+  ).length;
   const max = Math.max(...weekly.map((w) => w.value), 1);
 
   return (
@@ -54,7 +57,10 @@ export default function OrdersScreen() {
         subtitle="JENOZ Partner"
         title="Orders"
         right={
-          <button className="relative p-2 rounded-full bg-primary-soft text-primary-deep" aria-label="Notifications">
+          <button
+            className="relative p-2 rounded-full bg-primary-soft text-primary-deep"
+            aria-label="Notifications"
+          >
             <Bell className="w-5 h-5" />
             {newOrders.length > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
@@ -88,27 +94,33 @@ export default function OrdersScreen() {
                     {o.productName} · Size {o.size}
                   </p>
                   <p className="text-xs text-muted-foreground">📍 {o.location}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {relativeTime(o.createdAt, now)}
+                  </p>
                 </div>
                 <p className="text-sm font-semibold text-primary-deep">
                   ₹{o.amount.toLocaleString("en-IN")}
                 </p>
               </div>
-              <div className="flex gap-2 mt-3">
-                <Button
-                  size="sm"
-                  className="flex-1 bg-primary hover:bg-primary-deep"
-                  onClick={() => setOrderStatus(o.id, "accepted")}
-                >
-                  <Check className="w-4 h-4" /> Accept
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1 border-border"
-                  onClick={() => setOrderStatus(o.id, "rejected")}
-                >
-                  <X className="w-4 h-4" /> Reject
-                </Button>
+              <div className="mt-3 space-y-2">
+                <CustomerContactButtons phone={o.customerPhone} customerName={o.customer} />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-primary hover:bg-primary-deep"
+                    onClick={() => setOrderStatus(o.id, "accepted")}
+                  >
+                    <Check className="w-4 h-4" /> Accept
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 border-border"
+                    onClick={() => setOrderStatus(o.id, "rejected")}
+                  >
+                    <X className="w-4 h-4" /> Reject
+                  </Button>
+                </div>
               </div>
             </article>
           ))}
@@ -127,7 +139,6 @@ export default function OrdersScreen() {
             </div>
           )}
           {activeOrders.map((o) => {
-            const currentIndex = trackingSteps.findIndex((s) => s.key === o.status);
             const next = nextStatus[o.status];
             return (
               <article key={o.id} className="card-soft p-4">
@@ -135,7 +146,7 @@ export default function OrdersScreen() {
                   <div className="min-w-0">
                     <p className="font-semibold truncate">{o.customer}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {o.productName} · Size {o.size}
+                      {o.productName} · Size {o.size} · 📍 {o.location}
                     </p>
                   </div>
                   <p className="text-sm font-semibold text-primary-deep shrink-0">
@@ -143,69 +154,30 @@ export default function OrdersScreen() {
                   </p>
                 </div>
 
-                {/* Timeline */}
-                <ol className="flex items-start justify-between relative">
-                  <div
-                    className="absolute top-3 left-3 right-3 h-0.5 bg-border"
-                    aria-hidden
-                  />
-                  <div
-                    className="absolute top-3 left-3 h-0.5 bg-primary transition-all"
-                    style={{
-                      width:
-                        currentIndex <= 0
-                          ? "0%"
-                          : `calc((100% - 1.5rem) * ${currentIndex} / ${trackingSteps.length - 1})`,
-                    }}
-                    aria-hidden
-                  />
-                  {trackingSteps.map((step, idx) => {
-                    const Icon = step.icon;
-                    const reached = idx <= currentIndex;
-                    const isCurrent = idx === currentIndex;
-                    return (
-                      <li
-                        key={step.key}
-                        className="relative z-10 flex flex-col items-center gap-1.5 flex-1"
-                      >
-                        <span
-                          className={cn(
-                            "w-6 h-6 rounded-full flex items-center justify-center transition-all",
-                            reached
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-muted-foreground",
-                            isCurrent && "ring-4 ring-primary-soft",
-                          )}
-                        >
-                          <Icon className="w-3 h-3" />
-                        </span>
-                        <span
-                          className={cn(
-                            "text-[10px] font-medium text-center leading-tight",
-                            reached ? "text-primary-deep" : "text-muted-foreground",
-                          )}
-                        >
-                          {step.label}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ol>
+                <OrderTimeline order={o} now={now} />
 
-                {next && (
-                  <Button
-                    size="sm"
-                    className="w-full mt-4 bg-primary hover:bg-primary-deep"
-                    onClick={() => setOrderStatus(o.id, next)}
-                  >
-                    {nextLabel[o.status]}
-                  </Button>
-                )}
+                <div className="mt-4 space-y-2">
+                  <CustomerContactButtons phone={o.customerPhone} customerName={o.customer} />
+                  {next && (
+                    <Button
+                      size="sm"
+                      className="w-full bg-primary hover:bg-primary-deep"
+                      onClick={() =>
+                        setPending({ id: o.id, next, label: nextLabel[o.status]! })
+                      }
+                    >
+                      {nextLabel[o.status]}
+                    </Button>
+                  )}
+                </div>
               </article>
             );
           })}
         </div>
       </section>
+
+      {/* Delivered Orders */}
+      <DeliveredOrdersSection />
 
       {/* Stats */}
       <section className="grid grid-cols-2 gap-3 mb-6">
@@ -217,7 +189,7 @@ export default function OrdersScreen() {
         <div className="card-soft p-4 bg-primary-softer">
           <p className="text-xs text-muted-foreground">This Week</p>
           <p className="text-3xl font-bold text-primary-deep mt-1">{weekTotal}</p>
-          <p className="text-xs text-muted-foreground mt-1">Pending: {pending}</p>
+          <p className="text-xs text-muted-foreground mt-1">Pending: {pendingCount}</p>
         </div>
       </section>
 
@@ -231,7 +203,10 @@ export default function OrdersScreen() {
             <div key={w.day} className="flex-1 flex flex-col items-center gap-2">
               <div
                 className="w-full rounded-t-md bg-gradient-primary transition-all"
-                style={{ height: `${(w.value / max) * 100}%`, minHeight: w.value === 0 ? "4px" : "8px" }}
+                style={{
+                  height: `${(w.value / max) * 100}%`,
+                  minHeight: w.value === 0 ? "4px" : "8px",
+                }}
                 aria-label={`${w.day}: ${w.value} orders`}
               />
               <span className="text-[10px] font-medium text-muted-foreground">{w.day}</span>
@@ -239,6 +214,17 @@ export default function OrdersScreen() {
           ))}
         </div>
       </section>
+
+      <AdvanceStatusDialog
+        open={!!pending}
+        onOpenChange={(v) => !v && setPending(null)}
+        title={pending?.label ?? ""}
+        description="Add a quick note for the next handler (optional)."
+        confirmLabel={pending?.label ?? "Confirm"}
+        onConfirm={(note) => {
+          if (pending) setOrderStatus(pending.id, pending.next, note);
+        }}
+      />
     </div>
   );
 }
