@@ -52,16 +52,50 @@ export interface Payout {
   method: string;
 }
 
+export interface StoreProfile {
+  storeName: string;
+  ownerName: string;
+  email: string;
+  phone: string;
+  address: string;
+  gstin: string;
+}
+
+export interface PaymentSettings {
+  payoutMethod: "Bank" | "UPI";
+  upi: string;
+  bankHolder: string;
+  bankName: string;
+  accountNumber: string;
+  ifsc: string;
+  autoPayout: boolean;
+}
+
+export interface ReturnPolicy {
+  windowDays: number;
+  acceptsReturns: boolean;
+  acceptsExchanges: boolean;
+  notes: string;
+}
+
 interface StoreCtx {
   products: Product[];
   orders: Order[];
   payouts: Payout[];
   balance: number;
   now: number;
+  profile: StoreProfile;
+  payment: PaymentSettings;
+  returnPolicy: ReturnPolicy;
   addProduct: (p: Omit<Product, "id" | "sold">) => void;
   updateProduct: (id: string, p: Partial<Product>) => void;
+  deleteProduct: (id: string) => void;
   setOrderStatus: (id: string, status: OrderStatus, note?: string) => void;
   withdraw: (amount: number, method: string) => void;
+  updateProfile: (p: Partial<StoreProfile>) => void;
+  updatePayment: (p: Partial<PaymentSettings>) => void;
+  updateReturnPolicy: (p: Partial<ReturnPolicy>) => void;
+  logout: () => void;
 }
 
 const Ctx = createContext<StoreCtx | null>(null);
