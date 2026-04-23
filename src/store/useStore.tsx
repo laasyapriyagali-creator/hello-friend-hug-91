@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { toast } from "sonner";
 
 export type Size = "S" | "M" | "L" | "XL";
@@ -25,15 +25,24 @@ export type OrderStatus =
   | "delivered"
   | "rejected";
 
+export interface StatusEvent {
+  status: OrderStatus;
+  at: string; // ISO
+  note?: string;
+}
+
 export interface Order {
   id: string;
   customer: string;
+  customerPhone: string;
   productName: string;
   size: Size;
   location: string;
   amount: number;
   status: OrderStatus;
   createdAt: string;
+  history: StatusEvent[];
+  reorderCount: number;
 }
 
 export interface Payout {
@@ -48,13 +57,25 @@ interface StoreCtx {
   orders: Order[];
   payouts: Payout[];
   balance: number;
+  now: number;
   addProduct: (p: Omit<Product, "id" | "sold">) => void;
   updateProduct: (id: string, p: Partial<Product>) => void;
-  setOrderStatus: (id: string, status: OrderStatus) => void;
+  setOrderStatus: (id: string, status: OrderStatus, note?: string) => void;
   withdraw: (amount: number, method: string) => void;
 }
 
 const Ctx = createContext<StoreCtx | null>(null);
+
+// ETA minutes from "accepted" baseline for each status step
+export const statusEtaMinutes: Record<OrderStatus, number> = {
+  new: 0,
+  accepted: 0,
+  ready: 15,
+  picked_up: 25,
+  on_the_way: 35,
+  delivered: 55,
+  rejected: 0,
+};
 
 const seedProducts: Product[] = [
   {
@@ -103,15 +124,139 @@ const seedProducts: Product[] = [
   },
 ];
 
+const minutesAgo = (n: number) => new Date(Date.now() - n * 60_000).toISOString();
+
 const seedOrders: Order[] = [
-  { id: "o1", customer: "Sanvi", productName: "T-shirt", size: "S", location: "Siripuram", amount: 399, status: "new", createdAt: new Date().toISOString() },
-  { id: "o2", customer: "Priya", productName: "Blue Dress", size: "M", location: "Vuda Colony", amount: 1299, status: "new", createdAt: new Date().toISOString() },
-  { id: "o3", customer: "Anjali", productName: "Trousers", size: "L", location: "MVP Colony", amount: 850, status: "accepted", createdAt: new Date().toISOString() },
-  { id: "o4", customer: "Rohan", productName: "Gown", size: "M", location: "Dwaraka Nagar", amount: 599, status: "ready", createdAt: new Date().toISOString() },
-  { id: "o5", customer: "Meera", productName: "Skirt", size: "S", location: "Beach Road", amount: 799, status: "on_the_way", createdAt: new Date().toISOString() },
-  { id: "o6", customer: "Kavya", productName: "T-shirt", size: "M", location: "Asilmetta", amount: 399, status: "delivered", createdAt: new Date().toISOString() },
-  { id: "o7", customer: "Diya", productName: "Trousers", size: "S", location: "Gajuwaka", amount: 850, status: "delivered", createdAt: new Date().toISOString() },
-  { id: "o8", customer: "Tanvi", productName: "Gown", size: "L", location: "Madhurawada", amount: 599, status: "delivered", createdAt: new Date().toISOString() },
+  {
+    id: "o1",
+    customer: "Sanvi",
+    customerPhone: "+919000000001",
+    productName: "T-shirt",
+    size: "S",
+    location: "Siripuram",
+    amount: 399,
+    status: "new",
+    createdAt: minutesAgo(2),
+    history: [{ status: "new", at: minutesAgo(2) }],
+    reorderCount: 0,
+  },
+  {
+    id: "o2",
+    customer: "Priya",
+    customerPhone: "+919000000002",
+    productName: "Blue Dress",
+    size: "M",
+    location: "Vuda Colony",
+    amount: 1299,
+    status: "new",
+    createdAt: minutesAgo(4),
+    history: [{ status: "new", at: minutesAgo(4) }],
+    reorderCount: 1,
+  },
+  {
+    id: "o3",
+    customer: "Anjali",
+    customerPhone: "+919000000003",
+    productName: "Trousers",
+    size: "L",
+    location: "MVP Colony",
+    amount: 850,
+    status: "accepted",
+    createdAt: minutesAgo(12),
+    history: [
+      { status: "new", at: minutesAgo(12) },
+      { status: "accepted", at: minutesAgo(10) },
+    ],
+    reorderCount: 0,
+  },
+  {
+    id: "o4",
+    customer: "Rohan",
+    customerPhone: "+919000000004",
+    productName: "Gown",
+    size: "M",
+    location: "Dwaraka Nagar",
+    amount: 599,
+    status: "ready",
+    createdAt: minutesAgo(28),
+    history: [
+      { status: "new", at: minutesAgo(28) },
+      { status: "accepted", at: minutesAgo(25) },
+      { status: "ready", at: minutesAgo(8), note: "Packed in eco bag" },
+    ],
+    reorderCount: 2,
+  },
+  {
+    id: "o5",
+    customer: "Meera",
+    customerPhone: "+919000000005",
+    productName: "Skirt",
+    size: "S",
+    location: "Beach Road",
+    amount: 799,
+    status: "on_the_way",
+    createdAt: minutesAgo(45),
+    history: [
+      { status: "new", at: minutesAgo(45) },
+      { status: "accepted", at: minutesAgo(43) },
+      { status: "ready", at: minutesAgo(30) },
+      { status: "picked_up", at: minutesAgo(20) },
+      { status: "on_the_way", at: minutesAgo(8) },
+    ],
+    reorderCount: 0,
+  },
+  {
+    id: "o6",
+    customer: "Kavya",
+    customerPhone: "+919000000006",
+    productName: "T-shirt",
+    size: "M",
+    location: "Asilmetta",
+    amount: 399,
+    status: "delivered",
+    createdAt: minutesAgo(180),
+    history: [
+      { status: "new", at: minutesAgo(180) },
+      { status: "accepted", at: minutesAgo(178) },
+      { status: "ready", at: minutesAgo(160) },
+      { status: "picked_up", at: minutesAgo(150) },
+      { status: "on_the_way", at: minutesAgo(140) },
+      { status: "delivered", at: minutesAgo(120) },
+    ],
+    reorderCount: 3,
+  },
+  {
+    id: "o7",
+    customer: "Diya",
+    customerPhone: "+919000000007",
+    productName: "Trousers",
+    size: "S",
+    location: "Gajuwaka",
+    amount: 850,
+    status: "delivered",
+    createdAt: minutesAgo(60 * 26),
+    history: [
+      { status: "new", at: minutesAgo(60 * 26) },
+      { status: "delivered", at: minutesAgo(60 * 25) },
+    ],
+    reorderCount: 1,
+  },
+  {
+    id: "o8",
+    customer: "Tanvi",
+    customerPhone: "+919000000008",
+    productName: "Gown",
+    size: "L",
+    location: "Madhurawada",
+    amount: 599,
+    status: "delivered",
+    createdAt: minutesAgo(60 * 50),
+    history: [
+      { status: "new", at: minutesAgo(60 * 50) },
+      { status: "delivered", at: minutesAgo(60 * 49) },
+    ],
+    reorderCount: 0,
+  },
 ];
 
 const seedPayouts: Payout[] = [
@@ -124,6 +269,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<Order[]>(seedOrders);
   const [payouts, setPayouts] = useState<Payout[]>(seedPayouts);
   const [balance, setBalance] = useState<number>(12800);
+  const [now, setNow] = useState<number>(Date.now());
+
+  // Live ticker so timestamps and ETAs refresh without manual reload
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   const addProduct: StoreCtx["addProduct"] = (p) => {
     setProducts((prev) => [
@@ -138,8 +290,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     toast.success("Product updated");
   };
 
-  const setOrderStatus: StoreCtx["setOrderStatus"] = (id, status) => {
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
+  const setOrderStatus: StoreCtx["setOrderStatus"] = (id, status, note) => {
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === id
+          ? {
+              ...o,
+              status,
+              history: [...o.history, { status, at: new Date().toISOString(), note }],
+            }
+          : o,
+      ),
+    );
     const labels: Record<OrderStatus, string> = {
       new: "New",
       accepted: "Order accepted",
@@ -166,7 +328,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <Ctx.Provider value={{ products, orders, payouts, balance, addProduct, updateProduct, setOrderStatus, withdraw }}>
+    <Ctx.Provider value={{ products, orders, payouts, balance, now, addProduct, updateProduct, setOrderStatus, withdraw }}>
       {children}
     </Ctx.Provider>
   );
