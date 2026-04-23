@@ -1,7 +1,30 @@
-import { Bell, Check, X } from "lucide-react";
+import { Bell, Check, X, CheckCircle2, Package, Truck, Bike, MapPin } from "lucide-react";
 import ScreenHeader from "@/components/ScreenHeader";
-import { useStore } from "@/store/useStore";
+import { useStore, type OrderStatus } from "@/store/useStore";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+const trackingSteps: { key: OrderStatus; label: string; icon: typeof Package }[] = [
+  { key: "accepted", label: "Accepted", icon: CheckCircle2 },
+  { key: "ready", label: "Ready", icon: Package },
+  { key: "picked_up", label: "Picked up", icon: Bike },
+  { key: "on_the_way", label: "On the way", icon: Truck },
+  { key: "delivered", label: "Delivered", icon: MapPin },
+];
+
+const nextStatus: Partial<Record<OrderStatus, OrderStatus>> = {
+  accepted: "ready",
+  ready: "picked_up",
+  picked_up: "on_the_way",
+  on_the_way: "delivered",
+};
+
+const nextLabel: Partial<Record<OrderStatus, string>> = {
+  accepted: "Mark Ready",
+  ready: "Mark Picked Up",
+  picked_up: "Mark On The Way",
+  on_the_way: "Mark Delivered",
+};
 
 const weekly = [
   { day: "Mon", value: 8 },
@@ -16,6 +39,9 @@ const weekly = [
 export default function OrdersScreen() {
   const { orders, setOrderStatus } = useStore();
   const newOrders = orders.filter((o) => o.status === "new");
+  const activeOrders = orders.filter((o) =>
+    ["accepted", "ready", "picked_up", "on_the_way"].includes(o.status),
+  );
   const todaysCount = orders.filter((o) => o.status !== "rejected").length;
   const completedToday = orders.filter((o) => o.status === "delivered").length;
   const weekTotal = weekly.reduce((a, b) => a + b.value, 0);
@@ -86,6 +112,98 @@ export default function OrdersScreen() {
               </div>
             </article>
           ))}
+        </div>
+      </section>
+
+      {/* Order tracking */}
+      <section className="mb-6">
+        <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
+          Order Tracking
+        </h2>
+        <div className="space-y-3">
+          {activeOrders.length === 0 && (
+            <div className="card-soft p-6 text-center text-sm text-muted-foreground">
+              No orders in progress
+            </div>
+          )}
+          {activeOrders.map((o) => {
+            const currentIndex = trackingSteps.findIndex((s) => s.key === o.status);
+            const next = nextStatus[o.status];
+            return (
+              <article key={o.id} className="card-soft p-4">
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <div className="min-w-0">
+                    <p className="font-semibold truncate">{o.customer}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {o.productName} · Size {o.size}
+                    </p>
+                  </div>
+                  <p className="text-sm font-semibold text-primary-deep shrink-0">
+                    ₹{o.amount.toLocaleString("en-IN")}
+                  </p>
+                </div>
+
+                {/* Timeline */}
+                <ol className="flex items-start justify-between relative">
+                  <div
+                    className="absolute top-3 left-3 right-3 h-0.5 bg-border"
+                    aria-hidden
+                  />
+                  <div
+                    className="absolute top-3 left-3 h-0.5 bg-primary transition-all"
+                    style={{
+                      width:
+                        currentIndex <= 0
+                          ? "0%"
+                          : `calc((100% - 1.5rem) * ${currentIndex} / ${trackingSteps.length - 1})`,
+                    }}
+                    aria-hidden
+                  />
+                  {trackingSteps.map((step, idx) => {
+                    const Icon = step.icon;
+                    const reached = idx <= currentIndex;
+                    const isCurrent = idx === currentIndex;
+                    return (
+                      <li
+                        key={step.key}
+                        className="relative z-10 flex flex-col items-center gap-1.5 flex-1"
+                      >
+                        <span
+                          className={cn(
+                            "w-6 h-6 rounded-full flex items-center justify-center transition-all",
+                            reached
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground",
+                            isCurrent && "ring-4 ring-primary-soft",
+                          )}
+                        >
+                          <Icon className="w-3 h-3" />
+                        </span>
+                        <span
+                          className={cn(
+                            "text-[10px] font-medium text-center leading-tight",
+                            reached ? "text-primary-deep" : "text-muted-foreground",
+                          )}
+                        >
+                          {step.label}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
+
+                {next && (
+                  <Button
+                    size="sm"
+                    className="w-full mt-4 bg-primary hover:bg-primary-deep"
+                    onClick={() => setOrderStatus(o.id, next)}
+                  >
+                    {nextLabel[o.status]}
+                  </Button>
+                )}
+              </article>
+            );
+          })}
         </div>
       </section>
 
