@@ -1,10 +1,21 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ImagePlus } from "lucide-react";
+import { ArrowLeft, ImagePlus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useStore, Size, Category } from "@/store/useStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
 const ALL_SIZES: Size[] = ["S", "M", "L", "XL"];
@@ -14,7 +25,7 @@ const CATEGORIES: Category[] = ["Men", "Women", "Ethnic", "Casual", "Party Wear"
 export default function ProductFormScreen() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { products, addProduct, updateProduct } = useStore();
+  const { products, addProduct, updateProduct, deleteProduct } = useStore();
   const existing = id ? products.find((p) => p.id === id) : undefined;
 
   const [name, setName] = useState(existing?.name ?? "");
@@ -162,6 +173,40 @@ export default function ProductFormScreen() {
         <Button type="submit" className="w-full h-12 bg-primary hover:bg-primary-deep rounded-2xl">
           {existing ? "Save changes" : "Add product"}
         </Button>
+
+        {existing && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-12 rounded-2xl border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive"
+              >
+                <Trash2 className="w-4 h-4" /> Delete product
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="max-w-sm rounded-2xl">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete this product?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  "{existing.name}" will be removed from your catalogue. This cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-row gap-2">
+                <AlertDialogCancel className="flex-1 mt-0">Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="flex-1 bg-destructive hover:bg-destructive/90"
+                  onClick={() => {
+                    deleteProduct(existing.id);
+                    navigate("/products");
+                  }}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </form>
     </div>
   );

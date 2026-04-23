@@ -52,16 +52,50 @@ export interface Payout {
   method: string;
 }
 
+export interface StoreProfile {
+  storeName: string;
+  ownerName: string;
+  email: string;
+  phone: string;
+  address: string;
+  gstin: string;
+}
+
+export interface PaymentSettings {
+  payoutMethod: "Bank" | "UPI";
+  upi: string;
+  bankHolder: string;
+  bankName: string;
+  accountNumber: string;
+  ifsc: string;
+  autoPayout: boolean;
+}
+
+export interface ReturnPolicy {
+  windowDays: number;
+  acceptsReturns: boolean;
+  acceptsExchanges: boolean;
+  notes: string;
+}
+
 interface StoreCtx {
   products: Product[];
   orders: Order[];
   payouts: Payout[];
   balance: number;
   now: number;
+  profile: StoreProfile;
+  payment: PaymentSettings;
+  returnPolicy: ReturnPolicy;
   addProduct: (p: Omit<Product, "id" | "sold">) => void;
   updateProduct: (id: string, p: Partial<Product>) => void;
+  deleteProduct: (id: string) => void;
   setOrderStatus: (id: string, status: OrderStatus, note?: string) => void;
   withdraw: (amount: number, method: string) => void;
+  updateProfile: (p: Partial<StoreProfile>) => void;
+  updatePayment: (p: Partial<PaymentSettings>) => void;
+  updateReturnPolicy: (p: Partial<ReturnPolicy>) => void;
+  logout: () => void;
 }
 
 const Ctx = createContext<StoreCtx | null>(null);
@@ -264,12 +298,41 @@ const seedPayouts: Payout[] = [
   { id: "py2", date: "Feb 28", amount: 2000, method: "UPI" },
 ];
 
+const defaultProfile: StoreProfile = {
+  storeName: "JENOZ Store",
+  ownerName: "Aarav Mehta",
+  email: "owner@jenoz.shop",
+  phone: "+91 90000 12345",
+  address: "Beach Road, Visakhapatnam, AP 530017",
+  gstin: "37ABCDE1234F1Z5",
+};
+
+const defaultPayment: PaymentSettings = {
+  payoutMethod: "Bank",
+  upi: "jenoz@upi",
+  bankHolder: "Aarav Mehta",
+  bankName: "HDFC Bank",
+  accountNumber: "•••• 4521",
+  ifsc: "HDFC0001234",
+  autoPayout: true,
+};
+
+const defaultReturnPolicy: ReturnPolicy = {
+  windowDays: 7,
+  acceptsReturns: true,
+  acceptsExchanges: true,
+  notes: "Items must be unworn with original tags. Refunds are processed within 5 business days of pickup.",
+};
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>(seedProducts);
   const [orders, setOrders] = useState<Order[]>(seedOrders);
   const [payouts, setPayouts] = useState<Payout[]>(seedPayouts);
   const [balance, setBalance] = useState<number>(12800);
   const [now, setNow] = useState<number>(Date.now());
+  const [profile, setProfile] = useState<StoreProfile>(defaultProfile);
+  const [payment, setPayment] = useState<PaymentSettings>(defaultPayment);
+  const [returnPolicy, setReturnPolicy] = useState<ReturnPolicy>(defaultReturnPolicy);
 
   // Live ticker so timestamps and ETAs refresh without manual reload
   useEffect(() => {
@@ -288,6 +351,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateProduct: StoreCtx["updateProduct"] = (id, patch) => {
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
     toast.success("Product updated");
+  };
+
+  const deleteProduct: StoreCtx["deleteProduct"] = (id) => {
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+    toast.success("Product deleted");
   };
 
   const setOrderStatus: StoreCtx["setOrderStatus"] = (id, status, note) => {
@@ -327,8 +395,47 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     toast.success(`₹${amount.toLocaleString("en-IN")} withdrawn via ${method}`);
   };
 
+  const updateProfile: StoreCtx["updateProfile"] = (p) => {
+    setProfile((prev) => ({ ...prev, ...p }));
+    toast.success("Store details saved");
+  };
+
+  const updatePayment: StoreCtx["updatePayment"] = (p) => {
+    setPayment((prev) => ({ ...prev, ...p }));
+    toast.success("Payment settings saved");
+  };
+
+  const updateReturnPolicy: StoreCtx["updateReturnPolicy"] = (p) => {
+    setReturnPolicy((prev) => ({ ...prev, ...p }));
+    toast.success("Return policy updated");
+  };
+
+  const logout: StoreCtx["logout"] = () => {
+    toast.success("Logged out");
+  };
+
   return (
-    <Ctx.Provider value={{ products, orders, payouts, balance, now, addProduct, updateProduct, setOrderStatus, withdraw }}>
+    <Ctx.Provider
+      value={{
+        products,
+        orders,
+        payouts,
+        balance,
+        now,
+        profile,
+        payment,
+        returnPolicy,
+        addProduct,
+        updateProduct,
+        deleteProduct,
+        setOrderStatus,
+        withdraw,
+        updateProfile,
+        updatePayment,
+        updateReturnPolicy,
+        logout,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );

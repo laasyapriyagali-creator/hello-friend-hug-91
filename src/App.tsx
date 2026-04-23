@@ -11,6 +11,7 @@ import ProductFormScreen from "./pages/ProductFormScreen";
 import EarningsScreen from "./pages/EarningsScreen";
 import WithdrawScreen from "./pages/WithdrawScreen";
 import StoreSettingsScreen from "./pages/StoreSettingsScreen";
+import AccountDetailScreen from "./pages/AccountDetailScreen";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/earnings" element={<EarningsScreen />} />
               <Route path="/earnings/withdraw" element={<WithdrawScreen />} />
               <Route path="/store" element={<StoreSettingsScreen />} />
+              <Route path="/store/:section" element={<AccountDetailScreen />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
