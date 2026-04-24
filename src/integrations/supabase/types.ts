@@ -14,7 +14,255 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          product_id: string
+          product_name: string
+          quantity: number
+          size: string
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          product_id: string
+          product_name: string
+          quantity?: number
+          size: string
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          product_id?: string
+          product_name?: string
+          quantity?: number
+          size?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_status_events: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          order_id: string
+          status: Database["public"]["Enums"]["order_status"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          order_id: string
+          status: Database["public"]["Enums"]["order_status"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          order_id?: string
+          status?: Database["public"]["Enums"]["order_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_status_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          customer_name: string
+          customer_phone: string
+          delivered_at: string | null
+          delivery_address: string
+          estimated_delivery_at: string | null
+          estimated_pickup_at: string | null
+          id: string
+          status: Database["public"]["Enums"]["order_status"]
+          store_id: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          customer_name: string
+          customer_phone?: string
+          delivered_at?: string | null
+          delivery_address?: string
+          estimated_delivery_at?: string | null
+          estimated_pickup_at?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["order_status"]
+          store_id: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          customer_name?: string
+          customer_phone?: string
+          delivered_at?: string | null
+          delivery_address?: string
+          estimated_delivery_at?: string | null
+          estimated_pickup_at?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["order_status"]
+          store_id?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          category: Database["public"]["Enums"]["product_category"]
+          created_at: string
+          id: string
+          image_url: string | null
+          in_stock: boolean
+          name: string
+          price: number
+          sizes: string[]
+          sold_count: number
+          stock_by_size: Json
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["product_category"]
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          in_stock?: boolean
+          name: string
+          price: number
+          sizes?: string[]
+          sold_count?: number
+          stock_by_size?: Json
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["product_category"]
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          in_stock?: boolean
+          name?: string
+          price?: number
+          sizes?: string[]
+          sold_count?: number
+          stock_by_size?: Json
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      stores: {
+        Row: {
+          contact_phone: string
+          created_at: string
+          id: string
+          location: string
+          logo_url: string | null
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          contact_phone?: string
+          created_at?: string
+          id?: string
+          location?: string
+          logo_url?: string | null
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          contact_phone?: string
+          created_at?: string
+          id?: string
+          location?: string
+          logo_url?: string | null
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +271,23 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      order_status:
+        | "new"
+        | "accepted"
+        | "preparing"
+        | "ready_for_pickup"
+        | "out_for_delivery"
+        | "delivered"
+        | "rejected"
+      product_category:
+        | "men"
+        | "women"
+        | "ethnic"
+        | "casual"
+        | "party_wear"
+        | "kids"
+        | "accessories"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +414,26 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      order_status: [
+        "new",
+        "accepted",
+        "preparing",
+        "ready_for_pickup",
+        "out_for_delivery",
+        "delivered",
+        "rejected",
+      ],
+      product_category: [
+        "men",
+        "women",
+        "ethnic",
+        "casual",
+        "party_wear",
+        "kids",
+        "accessories",
+        "other",
+      ],
+    },
   },
 } as const
