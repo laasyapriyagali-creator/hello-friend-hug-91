@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +12,7 @@ import EarningsScreen from "./pages/EarningsScreen";
 import WithdrawScreen from "./pages/WithdrawScreen";
 import StoreSettingsScreen from "./pages/StoreSettingsScreen";
 import AccountDetailScreen from "./pages/AccountDetailScreen";
+import LoginScreen from "./pages/LoginScreen";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -24,11 +25,15 @@ const App = () => (
       <StoreProvider>
         <BrowserRouter>
           <Routes>
+            <Route path="/login" element={<LoginScreen />} />
             <Route element={<AppLayout />}>
               <Route path="/" element={<OrdersScreen />} />
+              <Route path="/orders" element={<OrdersScreen />} />
+              <Route path="/dashboard" element={<Navigate to="/" replace />} />
               <Route path="/products" element={<ProductsScreen />} />
               <Route path="/products/new" element={<ProductFormScreen />} />
               <Route path="/products/:id/edit" element={<ProductFormScreen />} />
+              <Route path="/analytics" element={<EarningsScreen />} />
               <Route path="/earnings" element={<EarningsScreen />} />
               <Route path="/earnings/withdraw" element={<WithdrawScreen />} />
               <Route path="/store" element={<StoreSettingsScreen />} />
