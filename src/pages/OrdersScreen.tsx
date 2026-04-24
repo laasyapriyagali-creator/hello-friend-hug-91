@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Check, X } from "lucide-react";
+import { Bell, Check, MapPin, Navigation, X } from "lucide-react";
 import ScreenHeader from "@/components/ScreenHeader";
 import { useStore, type OrderStatus } from "@/store/useStore";
 import { Button } from "@/components/ui/button";
@@ -10,17 +10,17 @@ import DeliveredOrdersSection from "@/components/DeliveredOrdersSection";
 import { relativeTime } from "@/lib/time";
 
 const nextStatus: Partial<Record<OrderStatus, OrderStatus>> = {
-  accepted: "ready",
-  ready: "picked_up",
-  picked_up: "on_the_way",
-  on_the_way: "delivered",
+  accepted: "preparing",
+  preparing: "ready_for_pickup",
+  ready_for_pickup: "out_for_delivery",
+  out_for_delivery: "delivered",
 };
 
 const nextLabel: Partial<Record<OrderStatus, string>> = {
-  accepted: "Mark Ready",
-  ready: "Mark Picked Up",
-  picked_up: "Mark On The Way",
-  on_the_way: "Mark Delivered",
+  accepted: "Start Preparing",
+  preparing: "Ready for Pickup",
+  ready_for_pickup: "Out for Delivery",
+  out_for_delivery: "Mark Delivered",
 };
 
 const weekly = [
@@ -34,20 +34,20 @@ const weekly = [
 ];
 
 export default function OrdersScreen() {
-  const { orders, setOrderStatus, now } = useStore();
+  const { orders, setOrderStatus, now, canAcceptOrder } = useStore();
   const [pending, setPending] = useState<{ id: string; next: OrderStatus; label: string } | null>(
     null,
   );
 
   const newOrders = orders.filter((o) => o.status === "new");
   const activeOrders = orders.filter((o) =>
-    ["accepted", "ready", "picked_up", "on_the_way"].includes(o.status),
+    ["accepted", "preparing", "ready_for_pickup", "out_for_delivery"].includes(o.status),
   );
   const todaysCount = orders.filter((o) => o.status !== "rejected").length;
   const completedToday = orders.filter((o) => o.status === "delivered").length;
   const weekTotal = weekly.reduce((a, b) => a + b.value, 0);
   const pendingCount = orders.filter((o) =>
-    ["new", "accepted", "ready", "on_the_way", "picked_up"].includes(o.status),
+    ["new", "accepted", "preparing", "ready_for_pickup", "out_for_delivery"].includes(o.status),
   ).length;
   const max = Math.max(...weekly.map((w) => w.value), 1);
 
@@ -82,7 +82,9 @@ export default function OrdersScreen() {
               No new orders right now ✨
             </div>
           )}
-          {newOrders.map((o) => (
+          {newOrders.map((o) => {
+            const stockCheck = canAcceptOrder(o);
+            return (
             <article key={o.id} className="card-soft p-4 animate-slide-up">
               <div className="flex gap-3">
                 <div className="w-12 h-12 rounded-full bg-primary-soft text-primary-deep flex items-center justify-center font-semibold">
@@ -102,12 +104,19 @@ export default function OrdersScreen() {
                   ₹{o.amount.toLocaleString("en-IN")}
                 </p>
               </div>
+              <LocationSummary order={o} />
+              {!stockCheck.ok && (
+                <div className="mt-3 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs font-medium text-destructive">
+                  {stockCheck.message}
+                </div>
+              )}
               <div className="mt-3 space-y-2">
                 <CustomerContactButtons phone={o.customerPhone} customerName={o.customer} />
                 <div className="flex gap-2">
                   <Button
                     size="sm"
                     className="flex-1 bg-primary hover:bg-primary-deep"
+                    disabled={!stockCheck.ok}
                     onClick={() => setOrderStatus(o.id, "accepted")}
                   >
                     <Check className="w-4 h-4" /> Accept
@@ -123,7 +132,8 @@ export default function OrdersScreen() {
                 </div>
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -154,6 +164,7 @@ export default function OrdersScreen() {
                   </p>
                 </div>
 
+                <LocationSummary order={o} compact />
                 <OrderTimeline order={o} now={now} />
 
                 <div className="mt-4 space-y-2">
@@ -225,6 +236,43 @@ export default function OrdersScreen() {
           if (pending) setOrderStatus(pending.id, pending.next, note);
         }}
       />
+    </div>
+  );
+}
+
+
+function LocationSummary({ order, compact = false }: { order: import("@/store/useStore").Order; compact?: boolean }) {
+  const mapsUrl = order.customerLatitude && order.customerLongitude
+    ? `https://www.google.com/maps/search/?api=1&query=${order.customerLatitude},${order.customerLongitude}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.location)}`;
+
+  return (
+    <div className={compact ? "mb-4 rounded-xl bg-primary-softer p-3" : "mt-3 rounded-xl bg-primary-softer p-3"}>
+      <div className="flex items-start gap-2">
+        <MapPin className="mt-0.5 h-4 w-4 text-primary-deep" />
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-foreground">Customer address</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">{order.location}</p>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+            <span className="rounded-lg bg-card px-2 py-1 text-muted-foreground">Distance: <b className="text-foreground">{order.distanceKm ? `${order.distanceKm} km` : "Syncing"}</b></span>
+            <span className="rounded-lg bg-card px-2 py-1 text-muted-foreground">ETA: <b className="text-foreground">{order.deliveryEtaLabel || "Calculating"}</b></span>
+          </div>
+        </div>
+        <a href={mapsUrl} target="_blank" rel="noreferrer" className="rounded-full bg-card p-2 text-primary-deep" aria-label="Open customer location map">
+          <Navigation className="h-4 w-4" />
+        </a>
+      </div>
+      {order.status === "out_for_delivery" && (
+        <div className="mt-3">
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>{order.trackingStatus || "Delivery partner en route"}</span>
+            <span>{order.trackingProgress || 0}%</span>
+          </div>
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${order.trackingProgress || 0}%` }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -46,6 +46,13 @@ export interface Order {
   size: Size;
   quantity: number;
   location: string;
+  customerLatitude?: number | null;
+  customerLongitude?: number | null;
+  distanceKm?: number | null;
+  deliveryEtaLabel?: string | null;
+  mapLabel?: string | null;
+  trackingStatus?: string | null;
+  trackingProgress?: number;
   amount: number;
   status: OrderStatus;
   createdAt: string;
@@ -69,6 +76,9 @@ export interface StoreProfile {
   email: string;
   phone: string;
   address: string;
+  logoUrl: string;
+  latitude: number;
+  longitude: number;
   gstin: string;
 }
 
@@ -208,6 +218,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     email: "",
     phone: "",
     address: "",
+    logoUrl: "",
+    latitude: 17.6868,
+    longitude: 83.2185,
     gstin: "",
   });
   const [payment, setPayment] = useState<PaymentSettings>(defaultPayment);
@@ -245,7 +258,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const storeName = owner.user_metadata?.store_name || owner.user_metadata?.full_name || "PIROQO Store";
       const created = await supabase
         .from("stores")
-        .insert({ owner_id: owner.id, name: storeName, location: "Visakhapatnam", contact_phone: "" })
+        .insert({ owner_id: owner.id, name: storeName, location: "Visakhapatnam", contact_phone: "", latitude: 17.6868, longitude: 83.2185 })
         .select("*")
         .single();
       if (created.error) throw created.error;
@@ -267,9 +280,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const orderRows = await supabase
         .from("orders")
         .insert([
-          { store_id: store.id, customer_name: "Sanvi", customer_phone: "+919000000001", delivery_address: "Siripuram", status: "new", total_amount: 399, created_at: minutesAgo(2) },
-          { store_id: store.id, customer_name: "Priya", customer_phone: "+919000000002", delivery_address: "Vuda Colony", status: "new", total_amount: 850, created_at: minutesAgo(4) },
-          { store_id: store.id, customer_name: "Meera", customer_phone: "+919000000005", delivery_address: "Beach Road", status: "delivered", total_amount: 1299, created_at: minutesAgo(120), delivered_at: minutesAgo(65), estimated_delivery_at: minutesAgo(65) },
+          { store_id: store.id, customer_name: "Sanvi", customer_phone: "+919000000001", delivery_address: "Siripuram, Visakhapatnam", customer_latitude: 17.7203, customer_longitude: 83.3132, map_label: "Siripuram", status: "new", total_amount: 399, created_at: minutesAgo(2) },
+          { store_id: store.id, customer_name: "Priya", customer_phone: "+919000000002", delivery_address: "Vuda Colony, Visakhapatnam", customer_latitude: 17.7527, customer_longitude: 83.3422, map_label: "Vuda Colony", status: "new", total_amount: 850, created_at: minutesAgo(4) },
+          { store_id: store.id, customer_name: "Meera", customer_phone: "+919000000005", delivery_address: "Beach Road, Visakhapatnam", customer_latitude: 17.7146, customer_longitude: 83.3237, map_label: "Beach Road", status: "delivered", total_amount: 1299, created_at: minutesAgo(120), delivered_at: minutesAgo(65), estimated_delivery_at: minutesAgo(65), tracking_status: "Delivered", tracking_progress: 100 },
         ])
         .select("*");
       if (orderRows.error) throw orderRows.error;
@@ -286,12 +299,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
 
     setStoreId(store.id);
+    const storeAny = store as any;
     setProfile({
       storeName: store.name,
       ownerName: profileRow?.display_name || owner.user_metadata?.full_name || "Store Owner",
       email: owner.email || "",
       phone: store.contact_phone || profileRow?.phone || "",
       address: store.location || "",
+      logoUrl: store.logo_url || "",
+      latitude: storeAny.latitude ?? 17.6868,
+      longitude: storeAny.longitude ?? 83.2185,
       gstin: "",
     });
     await refreshProducts(store.id);
@@ -337,6 +354,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return;
     }
     const mapped = (orderRows || []).map((o) => {
+      const orderAny = o as any;
       const firstItem = (itemRows || []).find((i) => i.order_id === o.id);
       const history = (eventRows || [])
         .filter((ev) => ev.order_id === o.id)
@@ -350,6 +368,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         size: (firstItem?.size as Size) || "M",
         quantity: firstItem?.quantity || 1,
         location: o.delivery_address,
+        customerLatitude: orderAny.customer_latitude,
+        customerLongitude: orderAny.customer_longitude,
+        distanceKm: orderAny.distance_km == null ? null : Number(orderAny.distance_km),
+        deliveryEtaLabel: orderAny.delivery_eta_label,
+        mapLabel: orderAny.map_label,
+        trackingStatus: orderAny.tracking_status,
+        trackingProgress: orderAny.tracking_progress ?? 0,
         amount: Number(o.total_amount),
         status: o.status as OrderStatus,
         createdAt: o.created_at,
@@ -373,6 +398,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!storeId) return;
     const channel = supabase
       .channel(`store-live-${storeId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "stores" }, () => user && loadData(user))
       .on("postgres_changes", { event: "*", schema: "public", table: "products" }, () => refreshProducts(storeId))
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => refreshOrders(storeId))
       .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, () => refreshOrders(storeId))
@@ -507,7 +533,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!user || !storeId) return;
     const next = { ...profile, ...p };
     const [storeUpdate, profileUpdate] = await Promise.all([
-      supabase.from("stores").update({ name: next.storeName, location: next.address, contact_phone: next.phone }).eq("id", storeId),
+      supabase.from("stores").update({ name: next.storeName, location: next.address, contact_phone: next.phone, logo_url: next.logoUrl, latitude: next.latitude, longitude: next.longitude } as any).eq("id", storeId),
       supabase.from("profiles").upsert({ user_id: user.id, display_name: next.ownerName, phone: next.phone }, { onConflict: "user_id" }),
     ]);
     if (storeUpdate.error) throw storeUpdate.error;
