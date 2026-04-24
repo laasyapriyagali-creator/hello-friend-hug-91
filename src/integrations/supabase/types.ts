@@ -98,46 +98,70 @@ export type Database = {
         Row: {
           accepted_at: string | null
           created_at: string
+          customer_latitude: number | null
+          customer_longitude: number | null
           customer_name: string
           customer_phone: string
           delivered_at: string | null
           delivery_address: string
+          delivery_eta_label: string | null
+          delivery_eta_minutes: number | null
+          distance_km: number | null
           estimated_delivery_at: string | null
           estimated_pickup_at: string | null
           id: string
+          map_label: string | null
           status: Database["public"]["Enums"]["order_status"]
           store_id: string
           total_amount: number
+          tracking_progress: number
+          tracking_status: string
           updated_at: string
         }
         Insert: {
           accepted_at?: string | null
           created_at?: string
+          customer_latitude?: number | null
+          customer_longitude?: number | null
           customer_name: string
           customer_phone?: string
           delivered_at?: string | null
           delivery_address?: string
+          delivery_eta_label?: string | null
+          delivery_eta_minutes?: number | null
+          distance_km?: number | null
           estimated_delivery_at?: string | null
           estimated_pickup_at?: string | null
           id?: string
+          map_label?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           store_id: string
           total_amount?: number
+          tracking_progress?: number
+          tracking_status?: string
           updated_at?: string
         }
         Update: {
           accepted_at?: string | null
           created_at?: string
+          customer_latitude?: number | null
+          customer_longitude?: number | null
           customer_name?: string
           customer_phone?: string
           delivered_at?: string | null
           delivery_address?: string
+          delivery_eta_label?: string | null
+          delivery_eta_minutes?: number | null
+          distance_km?: number | null
           estimated_delivery_at?: string | null
           estimated_pickup_at?: string | null
           id?: string
+          map_label?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           store_id?: string
           total_amount?: number
+          tracking_progress?: number
+          tracking_status?: string
           updated_at?: string
         }
         Relationships: [
@@ -235,8 +259,10 @@ export type Database = {
           contact_phone: string
           created_at: string
           id: string
+          latitude: number | null
           location: string
           logo_url: string | null
+          longitude: number | null
           name: string
           owner_id: string
           updated_at: string
@@ -245,8 +271,10 @@ export type Database = {
           contact_phone?: string
           created_at?: string
           id?: string
+          latitude?: number | null
           location?: string
           logo_url?: string | null
+          longitude?: number | null
           name: string
           owner_id: string
           updated_at?: string
@@ -255,8 +283,10 @@ export type Database = {
           contact_phone?: string
           created_at?: string
           id?: string
+          latitude?: number | null
           location?: string
           logo_url?: string | null
+          longitude?: number | null
           name?: string
           owner_id?: string
           updated_at?: string
@@ -268,7 +298,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      distance_km_between: {
+        Args: { lat1: number; lat2: number; lon1: number; lon2: number }
+        Returns: number
+      }
     }
     Enums: {
       order_status:
