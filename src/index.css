@@ -2,35 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
-/* JENOZ Business Partner — pastel purple, minimal, white-first design system.
+/* PIROQO Business Partner — black and white, minimal, white-first design system.
    All colors MUST be HSL. */
 
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 260 25% 15%;
+    --foreground: 0 0% 7%;
 
     --card: 0 0% 100%;
-    --card-foreground: 260 25% 15%;
+    --card-foreground: 0 0% 7%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 260 25% 15%;
+    --popover-foreground: 0 0% 7%;
 
-    /* Pastel purple primary */
-    --primary: 265 70% 72%;
+    /* Black primary */
+    --primary: 0 0% 7%;
     --primary-foreground: 0 0% 100%;
-    --primary-soft: 265 80% 94%;
-    --primary-softer: 265 90% 97%;
-    --primary-deep: 265 55% 55%;
+    --primary-soft: 0 0% 92%;
+    --primary-softer: 0 0% 97%;
+    --primary-deep: 0 0% 0%;
 
-    --secondary: 265 40% 96%;
-    --secondary-foreground: 265 35% 30%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 15%;
 
-    --muted: 260 20% 96%;
-    --muted-foreground: 260 10% 50%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 42%;
 
-    --accent: 265 80% 94%;
-    --accent-foreground: 265 55% 35%;
+    --accent: 0 0% 94%;
+    --accent-foreground: 0 0% 10%;
 
     --destructive: 0 75% 62%;
     --destructive-foreground: 0 0% 100%;
@@ -38,16 +38,16 @@
     --success: 145 55% 50%;
     --success-foreground: 0 0% 100%;
 
-    --border: 260 25% 92%;
-    --input: 260 25% 92%;
-    --ring: 265 70% 72%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 7%;
 
     --radius: 1rem;
 
-    --gradient-primary: linear-gradient(135deg, hsl(265 80% 85%), hsl(265 70% 72%));
-    --gradient-soft: linear-gradient(180deg, hsl(265 90% 98%), hsl(0 0% 100%));
-    --shadow-soft: 0 4px 20px -8px hsl(265 60% 60% / 0.18);
-    --shadow-card: 0 2px 12px -4px hsl(265 40% 50% / 0.10);
+    --gradient-primary: linear-gradient(135deg, hsl(0 0% 7%), hsl(0 0% 24%));
+    --gradient-soft: linear-gradient(180deg, hsl(0 0% 99%), hsl(0 0% 100%));
+    --shadow-soft: 0 4px 20px -8px hsl(0 0% 0% / 0.14);
+    --shadow-card: 0 2px 12px -4px hsl(0 0% 0% / 0.10);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -66,8 +66,8 @@
     --card-foreground: 0 0% 98%;
     --popover: 260 25% 10%;
     --popover-foreground: 0 0% 98%;
-    --primary: 265 70% 72%;
-    --primary-foreground: 260 25% 10%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 7%;
     --secondary: 260 20% 16%;
     --secondary-foreground: 0 0% 98%;
     --muted: 260 20% 16%;
@@ -78,7 +78,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 260 20% 18%;
     --input: 260 20% 18%;
-    --ring: 265 70% 72%;
+    --ring: 0 0% 98%;
   }
 }
 
