@@ -9,9 +9,9 @@ import { clockTime, etaLabel, relativeTime } from "@/lib/time";
 
 export const trackingSteps: { key: OrderStatus; label: string; icon: typeof Package }[] = [
   { key: "accepted", label: "Accepted", icon: CheckCircle2 },
-  { key: "ready", label: "Ready", icon: Package },
-  { key: "picked_up", label: "Picked up", icon: Bike },
-  { key: "on_the_way", label: "On the way", icon: Truck },
+  { key: "preparing", label: "Preparing", icon: Package },
+  { key: "ready_for_pickup", label: "Ready", icon: Bike },
+  { key: "out_for_delivery", label: "Out", icon: Truck },
   { key: "delivered", label: "Delivered", icon: MapPin },
 ];
 
@@ -25,7 +25,10 @@ export default function OrderTimeline({ order, now }: Props) {
   const acceptedAt = order.history.find((h) => h.status === "accepted")?.at;
   const baseMs = acceptedAt ? new Date(acceptedAt).getTime() : new Date(order.createdAt).getTime();
   const deliveredEvent = order.history.find((h) => h.status === "delivered");
-  const etaMs = baseMs + statusEtaMinutes.delivered * 60_000;
+  const etaTarget = order.status === "out_for_delivery"
+    ? order.estimatedDeliveryAt
+    : order.estimatedPickupAt || order.estimatedDeliveryAt;
+  const etaMs = etaTarget ? new Date(etaTarget).getTime() : baseMs + statusEtaMinutes.delivered * 60_000;
 
   return (
     <div>
@@ -85,7 +88,7 @@ export default function OrderTimeline({ order, now }: Props) {
         <span className="font-medium text-primary-deep">
           {deliveredEvent
             ? `Delivered · ${clockTime(deliveredEvent.at)}`
-            : `ETA ${etaLabel(etaMs, now)}`}
+            : `${order.status === "out_for_delivery" ? "Delivery" : "Pickup"} ETA ${etaLabel(etaMs, now)}`}
         </span>
       </div>
 
