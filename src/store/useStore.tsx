@@ -160,8 +160,8 @@ const categoryFromDb: Record<string, Category> = {
 
 const defaultPayment: PaymentSettings = {
   payoutMethod: "Bank",
-  upi: "piroqo@upi",
-  bankHolder: "PIROQO Store",
+  upi: "jenoz@upi",
+  bankHolder: "JENOZ Store",
   bankName: "HDFC Bank",
   accountNumber: "•••• 4521",
   ifsc: "HDFC0001234",
@@ -213,7 +213,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [balance, setBalance] = useState<number>(12800);
   const [now, setNow] = useState<number>(Date.now());
   const [profile, setProfile] = useState<StoreProfile>({
-    storeName: "PIROQO Store",
+    storeName: "JENOZ Store",
     ownerName: "Store Owner",
     email: "",
     phone: "",
@@ -255,7 +255,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     let { data: store } = await supabase.from("stores").select("*").eq("owner_id", owner.id).maybeSingle();
 
     if (!store) {
-      const storeName = owner.user_metadata?.store_name || owner.user_metadata?.full_name || "PIROQO Store";
+      const storeName = owner.user_metadata?.store_name || owner.user_metadata?.full_name || "JENOZ Store";
       const created = await supabase
         .from("stores")
         .insert({ owner_id: owner.id, name: storeName, location: "Visakhapatnam", contact_phone: "", latitude: 17.6868, longitude: 83.2185 })
@@ -427,7 +427,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { emailRedirectTo: window.location.origin, data: { store_name: storeName.trim() || "PIROQO Store" } },
+      options: { emailRedirectTo: window.location.origin, data: { store_name: storeName.trim() || "JENOZ Store" } },
     });
     if (error) throw error;
     toast.success("Account created. Check your email if confirmation is required.");
