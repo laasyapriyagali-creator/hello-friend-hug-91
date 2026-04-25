@@ -27,9 +27,9 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<LoginScreen />} />
             <Route element={<AppLayout />}>
-              <Route path="/" element={<OrdersScreen />} />
+              <Route path="/" element={<Navigate to="/orders" replace />} />
               <Route path="/orders" element={<OrdersScreen />} />
-              <Route path="/dashboard" element={<Navigate to="/" replace />} />
+              <Route path="/dashboard" element={<Navigate to="/orders" replace />} />
               <Route path="/products" element={<ProductsScreen />} />
               <Route path="/products/new" element={<ProductFormScreen />} />
               <Route path="/products/:id/edit" element={<ProductFormScreen />} />
