@@ -86,12 +86,125 @@ export default function AccountDetailScreen() {
 function StoreDetailsForm() {
   const { profile, updateProfile } = useStore();
   const [form, setForm] = useState(profile);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const onSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateProfile(form);
   };
+
+  const onPickFile = () => fileInputRef.current?.click();
+
+  const onLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5 MB");
+      return;
+    }
+    try {
+      setUploading(true);
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id;
+      if (!userId) {
+        toast.error("Please sign in again to upload");
+        return;
+      }
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${userId}/logo-${Date.now()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage
+        .from("store-logos")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (uploadErr) throw uploadErr;
+      const { data: pub } = supabase.storage.from("store-logos").getPublicUrl(path);
+      const next = { ...form, logoUrl: pub.publicUrl };
+      setForm(next);
+      await updateProfile({ logoUrl: pub.publicUrl });
+      toast.success("Logo updated");
+    } catch (err: any) {
+      toast.error(err?.message || "Could not upload logo");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const onRemoveLogo = async () => {
+    setForm({ ...form, logoUrl: "" });
+    await updateProfile({ logoUrl: "" });
+    toast.success("Logo removed");
+  };
+
+  const initials = (form.storeName || "S")
+    .split(" ")
+    .map((s) => s[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
     <form onSubmit={onSave} className="space-y-4">
+      <div className="card-soft p-4 flex items-center gap-4">
+        <div className="relative">
+          <div className="w-20 h-20 rounded-2xl overflow-hidden bg-muted flex items-center justify-center border border-border">
+            {form.logoUrl ? (
+              <img src={form.logoUrl} alt="Store logo" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-lg font-bold text-muted-foreground">{initials}</span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onPickFile}
+            disabled={uploading}
+            aria-label="Change logo"
+            className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md disabled:opacity-60"
+          >
+            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+          </button>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold">Store logo</p>
+          <p className="text-xs text-muted-foreground">PNG or JPG, up to 5 MB.</p>
+          <div className="flex gap-2 mt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onPickFile}
+              disabled={uploading}
+              className="h-8 rounded-full"
+            >
+              {form.logoUrl ? "Replace" : "Upload"}
+            </Button>
+            {form.logoUrl && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onRemoveLogo}
+                disabled={uploading}
+                className="h-8 rounded-full text-destructive hover:text-destructive"
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1" /> Remove
+              </Button>
+            )}
+          </div>
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={onLogoChange}
+        />
+      </div>
+
       <Field label="Store name" id="storeName" value={form.storeName} onChange={(v) => setForm({ ...form, storeName: v })} />
       <Field label="Owner name" id="ownerName" value={form.ownerName} onChange={(v) => setForm({ ...form, ownerName: v })} />
       <Field label="Email" id="email" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} />
