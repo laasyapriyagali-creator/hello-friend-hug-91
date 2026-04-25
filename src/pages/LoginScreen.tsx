@@ -12,7 +12,7 @@ export default function LoginScreen() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [storeName, setStoreName] = useState("PIROQO Store");
+  const [storeName, setStoreName] = useState("JENOZ Store");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -39,7 +39,7 @@ export default function LoginScreen() {
           <div className="w-12 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center mb-4">
             <LockKeyhole className="w-6 h-6" />
           </div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">PIROQO Partner</p>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">JENOZ Partner</p>
           <h1 className="text-3xl font-bold tracking-tight mt-1">Secure store login</h1>
         </div>
 

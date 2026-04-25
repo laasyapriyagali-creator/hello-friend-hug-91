@@ -1,5 +1,5 @@
 import { NavLink, Navigate, Outlet } from "react-router-dom";
-import { BarChart3, LayoutDashboard, Package, Shirt, Store } from "lucide-react";
+import { LayoutDashboard, Package, Shirt, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store/useStore";
 
@@ -7,7 +7,6 @@ const tabs = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/orders", label: "Orders", icon: Package },
   { to: "/products", label: "Products", icon: Shirt },
-  { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/store", label: "Account", icon: Store },
 ];
 
@@ -24,7 +23,7 @@ export default function AppLayout() {
     <div className="app-shell bg-gradient-soft">
       <Outlet />
       <nav aria-label="Primary" className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-card/95 backdrop-blur border-t border-border">
-        <ul className="grid grid-cols-5">
+        <ul className="grid grid-cols-4">
           {tabs.map(({ to, label, icon: Icon, end }) => (
             <li key={to}>
               <NavLink
