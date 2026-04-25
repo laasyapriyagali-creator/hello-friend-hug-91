@@ -1,5 +1,5 @@
 import { NavLink, Navigate, Outlet } from "react-router-dom";
-import { BarChart3, LayoutDashboard, Package, Shirt, Store } from "lucide-react";
+import { LayoutDashboard, Package, Shirt, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store/useStore";
 
@@ -7,7 +7,6 @@ const tabs = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/orders", label: "Orders", icon: Package },
   { to: "/products", label: "Products", icon: Shirt },
-  { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/store", label: "Account", icon: Store },
 ];
 
