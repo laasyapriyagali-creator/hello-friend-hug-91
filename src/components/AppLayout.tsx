@@ -1,13 +1,13 @@
 import { NavLink, Navigate, Outlet } from "react-router-dom";
-import { LayoutDashboard, Package, Shirt, Store } from "lucide-react";
+import { Package, Shirt, Wallet, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store/useStore";
 
 const tabs = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/orders", label: "Orders", icon: Package },
+  { to: "/orders", label: "Orders", icon: Package, end: true },
   { to: "/products", label: "Products", icon: Shirt },
-  { to: "/store", label: "Account", icon: Store },
+  { to: "/earnings", label: "Analysis", icon: Wallet },
+  { to: "/store", label: "Store", icon: Store },
 ];
 
 export default function AppLayout() {
