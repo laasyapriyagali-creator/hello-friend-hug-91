@@ -124,6 +124,8 @@ interface StoreCtx {
   updatePayment: (p: Partial<PaymentSettings>) => void;
   updateReturnPolicy: (p: Partial<ReturnPolicy>) => void;
   updatePassword: (password: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  deleteAccount: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -558,6 +560,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     toast.success("Password updated");
   };
 
+  const resetPassword: StoreCtx["resetPassword"] = async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw error;
+  };
+
+  const deleteAccount: StoreCtx["deleteAccount"] = async () => {
+    const { error } = await supabase.functions.invoke("delete-account");
+    if (error) throw error;
+    await supabase.auth.signOut();
+    toast.success("Account deleted");
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
     toast.success("Logged out");
@@ -588,6 +604,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     updatePayment,
     updateReturnPolicy,
     updatePassword,
+    resetPassword,
+    deleteAccount,
     logout,
   }), [user, session, loading, products, orders, payouts, balance, now, profile, payment, returnPolicy, storeId]);
 
