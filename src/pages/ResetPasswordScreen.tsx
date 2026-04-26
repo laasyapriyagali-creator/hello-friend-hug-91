@@ -16,14 +16,78 @@ export default function ResetPasswordScreen() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Supabase parses the recovery link and emits a PASSWORD_RECOVERY event
-    const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
+    let mounted = true;
+
+    // Listen for recovery / sign-in events first
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
+        setReady(true);
+      }
     });
-    supabase.auth.getSession().then(({ data: s }) => {
-      if (s.session) setReady(true);
-    });
-    return () => data.subscription.unsubscribe();
+
+    const init = async () => {
+      try {
+        // 1) Hash-fragment style links: #access_token=...&refresh_token=...&type=recovery
+        const hash = window.location.hash?.startsWith("#")
+          ? window.location.hash.slice(1)
+          : "";
+        const hashParams = new URLSearchParams(hash);
+        const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token");
+        const type = hashParams.get("type");
+
+        if (accessToken && refreshToken) {
+          const { error: setErr } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (!setErr && mounted) {
+            setReady(true);
+            // Clean the URL so tokens aren't visible
+            window.history.replaceState({}, document.title, "/reset-password");
+            return;
+          }
+          if (setErr) {
+            setError(setErr.message);
+          }
+        }
+
+        // 2) PKCE / query-param style links: ?code=...
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get("code");
+        if (code) {
+          const { error: exErr } = await supabase.auth.exchangeCodeForSession(code);
+          if (!exErr && mounted) {
+            setReady(true);
+            window.history.replaceState({}, document.title, "/reset-password");
+            return;
+          }
+          if (exErr) setError(exErr.message);
+        }
+
+        // 3) Fallback: maybe a session already exists
+        const { data: s } = await supabase.auth.getSession();
+        if (s.session && mounted) {
+          setReady(true);
+          return;
+        }
+
+        // Nothing worked — surface a helpful message
+        if (mounted && !accessToken && !code) {
+          setError("This reset link is invalid or has expired. Request a new one from the login screen.");
+        }
+      } catch (err) {
+        if (mounted) setError(err instanceof Error ? err.message : "Could not verify reset link");
+      }
+    };
+
+    init();
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const submit = async (e: React.FormEvent) => {
