@@ -385,19 +385,48 @@ function HelpSupport() {
 /* ---------------- Account Settings ---------------- */
 
 function AccountSettingsForm() {
-  const { logout } = useStore();
+  const { logout, updatePassword, deleteAccount } = useStore();
   const navigate = useNavigate();
   const [pwd, setPwd] = useState("");
   const [pwd2, setPwd2] = useState("");
+  const [pwdBusy, setPwdBusy] = useState(false);
   const [notifNewOrder, setNotifNewOrder] = useState(true);
   const [notifPayout, setNotifPayout] = useState(true);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
-  const onPwdSave = (e: React.FormEvent) => {
+  const onPwdSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pwd || pwd !== pwd2) return;
-    setPwd("");
-    setPwd2("");
-    import("sonner").then(({ toast }) => toast.success("Password updated"));
+    if (pwd.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    setPwdBusy(true);
+    try {
+      await updatePassword(pwd);
+      setPwd("");
+      setPwd2("");
+    } catch (err: any) {
+      toast.error(err?.message || "Could not update password");
+    } finally {
+      setPwdBusy(false);
+    }
+  };
+
+  const onConfirmDelete = async () => {
+    if (deleteConfirm !== "DELETE") return;
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      setDeleteOpen(false);
+      navigate("/login", { replace: true });
+    } catch (err: any) {
+      toast.error(err?.message || "Could not delete account");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -406,18 +435,18 @@ function AccountSettingsForm() {
         <p className="text-sm font-semibold">Change password</p>
         <div className="space-y-2">
           <Label htmlFor="pwd">New password</Label>
-          <Input id="pwd" type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} />
+          <Input id="pwd" type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} minLength={8} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="pwd2">Confirm password</Label>
-          <Input id="pwd2" type="password" value={pwd2} onChange={(e) => setPwd2(e.target.value)} />
+          <Input id="pwd2" type="password" value={pwd2} onChange={(e) => setPwd2(e.target.value)} minLength={8} />
         </div>
         <Button
           type="submit"
-          disabled={!pwd || pwd !== pwd2}
+          disabled={!pwd || pwd !== pwd2 || pwdBusy}
           className="w-full h-11 bg-primary hover:bg-primary-deep rounded-xl"
         >
-          Update password
+          {pwdBusy ? "Updating…" : "Update password"}
         </Button>
       </form>
 
@@ -447,6 +476,75 @@ function AccountSettingsForm() {
       >
         Log out
       </Button>
+
+      <div className="card-soft p-4 space-y-3 border-destructive/30">
+        <div>
+          <p className="text-sm font-semibold text-destructive">Danger zone</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Permanently delete your store, products, orders and account. This cannot be undone.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full h-11 rounded-xl border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => { setDeleteConfirm(""); setDeleteOpen(true); }}
+        >
+          <Trash2 className="w-4 h-4 mr-2" /> Delete account
+        </Button>
+      </div>
+
+      {deleteOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+          onClick={() => !deleting && setDeleteOpen(false)}
+        >
+          <div
+            className="w-full max-w-md bg-card rounded-2xl border border-destructive/40 shadow-lg p-5 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <h2 className="text-lg font-bold text-destructive">Delete your account?</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                This will permanently remove your store, products, orders, payouts and login.
+                <span className="block mt-2 font-medium text-destructive">These changes cannot be undone.</span>
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="deleteConfirm">
+                Type <span className="font-mono font-bold">DELETE</span> to confirm
+              </Label>
+              <Input
+                id="deleteConfirm"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                placeholder="DELETE"
+                autoFocus
+                disabled={deleting}
+              />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 h-11 rounded-xl"
+                onClick={() => setDeleteOpen(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                className="flex-1 h-11 rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground disabled:opacity-50"
+                disabled={deleteConfirm !== "DELETE" || deleting}
+                onClick={onConfirmDelete}
+              >
+                {deleting ? "Deleting…" : "Delete account"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

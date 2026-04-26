@@ -13,6 +13,7 @@ import WithdrawScreen from "./pages/WithdrawScreen";
 import StoreSettingsScreen from "./pages/StoreSettingsScreen";
 import AccountDetailScreen from "./pages/AccountDetailScreen";
 import LoginScreen from "./pages/LoginScreen";
+import ResetPasswordScreen from "./pages/ResetPasswordScreen";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginScreen />} />
+            <Route path="/reset-password" element={<ResetPasswordScreen />} />
             <Route element={<AppLayout />}>
               <Route path="/" element={<Navigate to="/orders" replace />} />
               <Route path="/orders" element={<OrdersScreen />} />
