@@ -120,8 +120,13 @@ export default function ResetPasswordScreen() {
           <p className="text-sm text-muted-foreground mt-2">
             {ready
               ? "Enter your new password below. You'll stay signed in afterwards."
-              : "Verifying your reset link…"}
+              : error
+                ? "We couldn't verify your reset link."
+                : "Verifying your reset link…"}
           </p>
+          {!ready && error && (
+            <p className="text-sm text-destructive mt-2">{error}</p>
+          )}
         </div>
 
         <form onSubmit={submit} className="space-y-4">
